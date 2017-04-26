@@ -1,7 +1,5 @@
 function [res] = tracking_push_relabel(dres, c_en, c_ex, c_ij, betta, max_it)
 
-%%% dres = [x,y,w,h,r,fr]
-
 dnum = length(dres.x);
 
 dres.c = betta - dres.r; %% cost for each detection window
@@ -114,4 +112,4 @@ res.id = res_ids_sorted(:);
 % res = sub(res,tmp);
 % % res = sub(dres,inds_all_its(1).inds);
 % % res.r = res.r/1e6;
-end
+

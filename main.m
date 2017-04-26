@@ -1,85 +1,126 @@
-clc;
-clear;
-addpath(genpath('/home/shubham/mot_benchmark/staple'));    %% path for STAPLE tracker
-addpath(genpath('/home/shubham/mot_benchmark/toolbox/'));   %% Poitr toolbox
+clear
+% addpath('3rd_party/voc-release3.1/');           %% this code is downloaded from http://people.cs.uchicago.edu/~pff/latent/
+% addpath('3rd_party/cs2/');                      %% this code is downloaded from http://www.igsystems.com/cs2/index.html and then mex'ed to run faster in matlab.
 
-%%% Load Detector
-loadModel = 1;  %1->Caltech  2->INRIA
-detector = detector_Class(loadModel);
-count = 1;
+% mex -O tracking_cvpr11_release_v1.0/3rd_party/cs2/cs2mex.c -outdir 3rd_party/cs2/cs2mex     %% compiling c implementation of push-relabel algorithm. It is downloaded from http://www.igsystems.com/cs2/index.html and then we mex'ed it to run faster in matlab.
 
-%%%%%%%%%%% Read Images and Get detections %%%%%%%%%%%%%%%%
-img_path = '/home/shubham/mot_benchmark/Sequences/MOT15/train/PETS09-S2L1/img1/';
-srcFiles = dir(strcat(img_path,'*.jpg'));
-% no_frames = length(srcFiles);
-no_frames = 40;
-delta = 4;
-img_files = cell(no_frames, 1);
-for i = 1:no_frames           %% read all frames ->no_frames
-   img_files{i} = srcFiles(i).name;
+% cd ('tracking_cvpr11_release_v1.0/3rd_party/voc-release3.1')
+% compile                                         %% compiling mex files for part-based object detector
+% cd('../..');
+
+addpath(genpath('/home/shubham/mot_benchmark/meng-work/MATLAB/tracking_cvpr11_release_v1_0'));
+% datadir  = 'data/';
+datadir  = '/home/shubham/mot_benchmark/meng-work/MATLAB/tracking_cvpr11_release_v1_0/data/';
+cachedir = '/home/shubham/mot_benchmark/meng-work/MATLAB/tracking_cvpr11_release_v1_0/cache/';
+mkdir(cachedir);
+vid_name = 'seq03-img-left';
+vid_path = [datadir vid_name '/'];
+
+%%% Run object/human detector on all frames.
+display('in object/human detection... (may take an hour using 8 CPU cores: please set the number of available CPU cores in the code)')
+fname = [cachedir vid_name '_detec_res.mat'];
+try
+  load(fname)
+catch
+  [dres, bboxes] = detect_objects(vid_path);
+  save (fname, 'dres', 'bboxes');
 end
 
-%%%%%%%%%%% struct stores all trajectories %%%%%%%%%%%%%
-det = struct('frame',[],'id',[],'position',[],'forward_traj',[],'backward_traj',[]); 
-
-for i=1:delta:no_frames-delta
-image = imread(strcat(img_path,srcFiles(i).name));
-bboxes = detect(detector,image);
-len = size(bboxes,1);
-
-for j = 1:len
-    bbox = bboxes(j,:);
-    det(count).frame = i;
-    det(count).id = j;
-    det(count).position = bbox;
-    
-    %%%%% get forward and back trajectories
-    im_files = img_files(i:i+delta);
-    results = stapleTracker(img_path, im_files, image, bbox);
-    det(count).forward_traj = results.res;    
-    im_files = img_files(max(i-delta,1):i)';   %% convert to row vector
-    im_files = fliplr(im_files);
-    results = stapleTracker(img_path, im_files, image, bbox);
-    det(count).backward_traj = results.res;
-    
-    count = count+1;
-end 
+%%% Adding transition links to the graph by fiding overlapping detections in consequent frames.
+display('in building the graph...')
+fname = [cachedir vid_name '_graph_res.mat'];
+try
+  load(fname)
+catch
+  dres = build_graph(dres);
+  save (fname, 'dres');
 end
 
-%%%% testing
-xx1 = det(1).frame;
-xx2 = det(6).frame;
-yy1 = det(1).forward_traj;
-yy2 = det(6).backward_traj;
-overlap_measure = trajOverlap(xx1,xx2,yy1,yy2);
+%%% loading ground truth data
+load([datadir 'seq03-img-left_ground_truth.mat']);
+people  = sub(gt,find(gt.w<24));    %% move small objects to "don't care" state in evaluation. This detector cannot detect these, so we will ignore false positives on them.
+gt      = sub(gt,find(gt.w>=24));
 
-%%% Initialize Variables for ILP 
+%%% setting parameters for tracking
 c_en      = 10;     %% birth cost
 c_ex      = 10;     %% death cost
-% c_ij      = -1;      %% transition cost
+c_ij      = 0;      %% transition cost
 betta     = 0.2;    %% betta
 max_it    = inf;    %% max number of iterations (max number of tracks)
 thr_cost  = 18;     %% max acceptable cost for a track (increase it to have more tracks.)
 
-%%% calculate Cij for all xi,xj
-no_det = length(det);
-c_ij = zeros(no_det,no_det);   %% if frame.i== frame.j then cij=0
-for i=1:no_det
-    for j= i:no_det
-        xx1 = det(i).frame;
-        xx2 = det(j).frame;
-        if (xx1==xx2)
-            c_ij(i,j) = 0;
-        else
-            yy1 = det(i).forward_traj;
-            yy2 = det(j).backward_traj;
-            c_ij(i,j) = trajOverlap(xx1,xx2,yy1,yy2);
-        end
-    end
+%%% Running tracking algorithms
+% display('in DP tracking ...')
+% tic
+% dres_dp       = tracking_dp(dres, c_en, c_ex, c_ij, betta, thr_cost, max_it, 0);
+% dres_dp.r     = -dres_dp.id;
+% toc
+
+% tic
+% display('in DP tracking with nms in the loop...')
+% dres_dp_nms   = tracking_dp(dres, c_en, c_ex, c_ij, betta, thr_cost, max_it, 1);
+% dres_dp_nms.r = -dres_dp_nms.id;
+% toc
+
+tic
+display('in push relabel algorithm ...')
+dres_push_relabel   = tracking_push_relabel(dres, c_en, c_ex, c_ij, betta, max_it);
+dres_push_relabel.r = -dres_push_relabel.id;
+toc
+%%% We ignore the first frame in evaluation since there is no ground truth for it.
+dres              = sub(dres,               find(dres.fr              >1));
+dres_dp           = sub(dres_dp,            find(dres_dp.fr           >1));
+dres_dp_nms       = sub(dres_dp_nms,        find(dres_dp_nms.fr       >1));
+dres_push_relabel = sub(dres_push_relabel,  find(dres_push_relabel.fr >1));
+
+%%% Evaluating
+figure(1),
+display('evaluating...')
+[missr, fppi] = score(dres, gt, people);
+ff=find(fppi>3,1);
+semilogx(fppi(1:ff),1-missr(1:ff), 'k');
+hold on
+
+[missr, fppi] = score(dres_dp, gt, people);
+semilogx(fppi,1-missr, 'r', 'LineWidth', 2);
+
+[missr, fppi] = score(dres_dp_nms, gt, people);
+semilogx(fppi,1-missr, 'g');
+
+[missr, fppi] = score(dres_push_relabel, gt, people);
+semilogx(fppi,1-missr, 'b');
+
+xlabel('False Positive Per Frame')
+ylabel('Detection Rate')
+legend('Dynamic programming', 'Succesive shortest path', 'NMS in the loop', 'HOG','location', 'NorthWest')
+set(gcf, 'paperpositionmode','auto')
+axis([0.001 5 0 1])
+grid
+hold off
+
+display('writing the results into a video file ...')
+
+%%% uncomment this block if you want to re-build the label images. You don't need to do that unless there is more than 1000 tracks.
+% close all
+% % for i = 1:max(dres_dp.track_id)
+% for i = 1:1000
+%   bws(i).bw =  text_to_image(num2str(i), 20, 123);
+% end
+% save data/label_image_file bws
+
+% load([datadir 'label_image_file']);
+m=2;
+for i=1:length(bws)                   %% adds some margin to the label images
+  [sz1 sz2] = size(bws(i).bw);
+  bws(i).bw = [zeros(sz1+2*m,m) [zeros(m,sz2); bws(i).bw; zeros(m,sz2)] zeros(sz1+2*m,m)];
 end
 
+input_frames    = [datadir 'seq03-img-left/image_%0.8d_0.png'];
+output_path     = [cachedir vid_name '_dp_tracked/'];
+output_vidname  = [cachedir vid_name '_dp_tracked.avi'];
 
-%%% push relabel method
-% dres_push_relabel   = tracking_push_relabel(det, c_en, c_ex, c_ij, betta, max_it);
-% dres_push_relabel.r = -dres_push_relabel.id;
+display(output_vidname)
 
+fnum = max(dres.fr);
+bboxes_tracked = dres2bboxes(dres_dp_nms, fnum);  %% we are visualizing the "DP with NMS in the lop" results. Can be changed to show the results of DP or push relabel algorithm.
+show_bboxes_on_video(input_frames, bboxes_tracked, output_vidname, bws, 4, -inf, output_path);
