@@ -15,19 +15,19 @@ n_edges = 0;
 
 dat_in = zeros(1e7,3); %% each row represents an edge from node in column 1 to node in column 2 with cost in column 3.
 k_dat = 0;
-for i = 1:dnum
+for i = 1:dnum     %% for each individual detection
   k_dat = k_dat+3;
   dat_in(k_dat-2,:) = [1      2*i     c_en      ];
   dat_in(k_dat-1,:) = [2*i    2*i+1   dres.c(i) ];
   dat_in(k_dat,:)   = [2*i+1  n_nodes c_ex      ];
 end
-for i=1:dnum
-  f2 = dres.nei(i).inds;
-  for j = 1:length(f2)
-    k_dat = k_dat+1;
-    dat_in(k_dat,:) = [2*f2(j)+1 2*i c_ij];
-  end
-end
+% for i=1:dnum
+%   f2 = dres.nei(i).inds;
+%   for j = 1:length(f2)
+%     k_dat = k_dat+1;
+%     dat_in(k_dat,:) = [2*f2(j)+1 2*i c_ij];
+%   end
+% end
 dat_in = [dat_in repmat([0 1],size(dat_in,1),1)];  %% add two columns: 0 for min capacity in column 4 and 1 for max capacity in column 5 for all edges.
 
 excess_node = [1 n_nodes];  %% push flow in the first node and collect it in the last node.

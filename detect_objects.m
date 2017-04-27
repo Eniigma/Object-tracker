@@ -29,7 +29,8 @@ for i=1:length(dirlist)
   boxes = detect(im, model, thresh);  %% running the detector
   bbox =  getboxes(model, boxes);
   
-  bboxes(i).bbox = nms(bbox, 0.5);    %% running non-max-suppression to suppress overlaping weak detections.
+  bboxes(i).bbox = nms(bbox, 0.3);    %% running non-max-suppression to suppress overlaping weak detections.
+%   j = j+delta;
 end
 dres = bboxes2dres(bboxes);           %% converting the data format.
 dres.x = dres.x/2;                    %% compensate doubling image size.
