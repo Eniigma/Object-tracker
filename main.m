@@ -38,7 +38,14 @@ dres.h = dres.h(ind);
 dres.r = dres.r(ind);
 dres.fr = dres.fr(ind);
 
-dres = single_target_tracker(dres,vid_path);
+ftrack = [cachedir vid_name 'track_4.mat'];
+% tic
+% dres = single_target_tracker(dres,vid_path);
+% toc
+% save (ftrack, 'dres');
+
+load(ftrack);
+ c_ij = link_cost(dres);
 
 %%% loading ground truth data
 load([datadir 'seq03-img-left_ground_truth.mat']);
@@ -48,7 +55,7 @@ gt      = sub(gt,find(gt.w>=24));
 %%% setting parameters for tracking
 c_en      = 10;     %% birth cost
 c_ex      = 10;     %% death cost
-c_ij      = 0;      %% transition cost
+% c_ij      = 0;      %% transition cost
 betta     = 0.2;    %% betta
 max_it    = inf;    %% max number of iterations (max number of tracks)
 thr_cost  = 18;     %% max acceptable cost for a track (increase it to have more tracks.)
@@ -60,34 +67,36 @@ dres_push_relabel.r = -dres_push_relabel.id;
 toc
 %%% We ignore the first frame in evaluation since there is no ground truth for it.
 dres              = sub(dres,               find(dres.fr              >1));
-dres_dp           = sub(dres_dp,            find(dres_dp.fr           >1));
-dres_dp_nms       = sub(dres_dp_nms,        find(dres_dp_nms.fr       >1));
+% dres_dp           = sub(dres_dp,            find(dres_dp.fr           >1));
+% dres_dp_nms       = sub(dres_dp_nms,        find(dres_dp_nms.fr       >1));
 dres_push_relabel = sub(dres_push_relabel,  find(dres_push_relabel.fr >1));
 
-%%% Evaluating
-figure(1),
-display('evaluating...')
-[missr, fppi] = score(dres, gt, people);
-ff=find(fppi>3,1);
-semilogx(fppi(1:ff),1-missr(1:ff), 'k');
-hold on
+%%%%%%%%%% Evaluating %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% figure(1),
+% display('evaluating...')
+% [missr, fppi] = score(dres, gt, people);
+% ff=find(fppi>3,1);
+% semilogx(fppi(1:ff),1-missr(1:ff), 'k');
+% hold on
+% 
+% [missr, fppi] = score(dres_dp, gt, people);
+% semilogx(fppi,1-missr, 'r', 'LineWidth', 2);
+% 
+% [missr, fppi] = score(dres_dp_nms, gt, people);
+% semilogx(fppi,1-missr, 'g');
+% 
+% [missr, fppi] = score(dres_push_relabel, gt, people);
+% semilogx(fppi,1-missr, 'b');
+% 
+% xlabel('False Positive Per Frame')
+% ylabel('Detection Rate')
+% legend('Dynamic programming', 'Succesive shortest path', 'NMS in the loop', 'HOG','location', 'NorthWest')
+% set(gcf, 'paperpositionmode','auto')
+% axis([0.001 5 0 1])
+% grid
+% hold off
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-[missr, fppi] = score(dres_dp, gt, people);
-semilogx(fppi,1-missr, 'r', 'LineWidth', 2);
-
-[missr, fppi] = score(dres_dp_nms, gt, people);
-semilogx(fppi,1-missr, 'g');
-
-[missr, fppi] = score(dres_push_relabel, gt, people);
-semilogx(fppi,1-missr, 'b');
-
-xlabel('False Positive Per Frame')
-ylabel('Detection Rate')
-legend('Dynamic programming', 'Succesive shortest path', 'NMS in the loop', 'HOG','location', 'NorthWest')
-set(gcf, 'paperpositionmode','auto')
-axis([0.001 5 0 1])
-grid
-hold off
 
 display('writing the results into a video file ...')
 
@@ -109,7 +118,7 @@ end
 direct = '/home/shubham/mot_benchmark/Object-tracker/';
 input_frames    = [datadir 'seq03-img-left/image_%0.8d_0.png'];
 output_path     = [direct 'output/'];
-output_vidname  = [direct '_push_relabel_tracked.avi'];
+output_vidname  = [direct '_push_relabel.avi'];
 
 display(output_vidname)
 

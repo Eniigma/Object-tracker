@@ -28,6 +28,18 @@ end
 %     dat_in(k_dat,:) = [2*f2(j)+1 2*i c_ij];
 %   end
 % end
+j=0;
+[index1,index2] = find(c_ij ~=10*1e6);
+for i=1:length(index1)
+    k_dat = k_dat+1;
+    r1 = index1(i);
+    r2 = index2(i);
+%     if r1<r2
+    dat_in(k_dat,:) = [2*r1+1  2*r2  c_ij(r1,r2)];
+%     else
+%     dat_in(k_dat,:) = [2*r2+1  2*r1 c_ij(r1,r2)];    
+end
+
 dat_in = [dat_in repmat([0 1],size(dat_in,1),1)];  %% add two columns: 0 for min capacity in column 4 and 1 for max capacity in column 5 for all edges.
 
 excess_node = [1 n_nodes];  %% push flow in the first node and collect it in the last node.
@@ -97,7 +109,8 @@ this_cost = zeros(1, max(res_ids));
 for i = 1:max(res_ids)  %% for each track
   inds = find(res_ids == i);
   len1= length(inds);
-  track_cost(i) = sum(dres.c(res_inds(inds))) + (len1-1) * c_ij + c_en + c_ex;
+%   track_cost(i) = sum(dres.c(res_inds(inds))) + (len1-1) * c_ij + c_en + c_ex;
+track_cost(i) = sum(dres.c(res_inds(inds))) + c_en + c_ex;
 end
 [dummy sort_inds] = sort(track_cost);
 

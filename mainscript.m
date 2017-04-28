@@ -12,7 +12,7 @@ count = 1;
 img_path = '/home/shubham/mot_benchmark/Sequences/MOT15/train/PETS09-S2L1/img1/';
 srcFiles = dir(strcat(img_path,'*.jpg'));
 % no_frames = length(srcFiles);
-no_frames = 5;
+no_frames = 20;
 delta = 4;
 img_files = cell(no_frames, 1);
 for i = 1:no_frames           %% read all frames ->no_frames
@@ -65,8 +65,8 @@ thr_cost  = 18;     %% max acceptable cost for a track (increase it to have more
 no_det = length(det);
 c_ij = zeros(no_det,no_det);   %% if frame.i== frame.j then cij=0
 for i=1:no_det
+    xx1 = det(i).frame;
     for j= i:no_det
-        xx1 = det(i).frame;
         xx2 = det(j).frame;
         if (xx1==xx2)
             c_ij(i,j) = 0;

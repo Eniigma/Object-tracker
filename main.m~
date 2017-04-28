@@ -28,11 +28,25 @@ end
 %   dres = build_graph(dres);
 %   save (fname, 'dres');
 % end
-if(dres.r < 0)
-    dres = dres 
-end
 
-% dres = single_target_tracker(dres);
+%%% remove detections with negative confidence score
+ind = find(dres.r > 0);
+dres.x = dres.x(ind);
+dres.y = dres.y(ind);
+dres.w = dres.w(ind);
+dres.h = dres.h(ind);
+dres.r = dres.r(ind);
+dres.fr = dres.fr(ind);
+
+ftrack = [cachedir vid_name 'track_4.mat'];
+tic
+dres = single_target_tracker(dres,vid_path);
+toc
+save (ftrack, 'dres');
+
+% load(ftrack);
+ c_ij = link_cost(dres);
+
 %%% loading ground truth data
 load([datadir 'seq03-img-left_ground_truth.mat']);
 people  = sub(gt,find(gt.w<24));    %% move small objects to "don't care" state in evaluation. This detector cannot detect these, so we will ignore false positives on them.
