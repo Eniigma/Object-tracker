@@ -21,6 +21,7 @@ for i = 1:dnum     %% for each individual detection
   dat_in(k_dat-1,:) = [2*i    2*i+1   dres.c(i) ];
   dat_in(k_dat,:)   = [2*i+1  n_nodes c_ex      ];
 end
+display(k_dat);
 % for i=1:dnum
 %   f2 = dres.nei(i).inds;
 %   for j = 1:length(f2)
@@ -34,12 +35,9 @@ for i=1:length(index1)
     k_dat = k_dat+1;
     r1 = index1(i);
     r2 = index2(i);
-%     if r1<r2
-    dat_in(k_dat,:) = [2*r1+1  2*r2  c_ij(r1,r2)];
-%     else
-%     dat_in(k_dat,:) = [2*r2+1  2*r1 c_ij(r1,r2)];    
+    dat_in(k_dat,:) = [2*r1+1  2*r2  c_ij(r1,r2)];    
 end
-
+display(k_dat);
 dat_in = [dat_in repmat([0 1],size(dat_in,1),1)];  %% add two columns: 0 for min capacity in column 4 and 1 for max capacity in column 5 for all edges.
 
 excess_node = [1 n_nodes];  %% push flow in the first node and collect it in the last node.
@@ -65,7 +63,7 @@ while ub-lb > 1     %% bisection search for the optimum amount of flow. This can
   else
     lb = tr_num;
   end
-  k=k+1;
+  k=k+1;    %% k= 1 to 13 , condition to loop end-> ub <= lb+1 
 end
 
 if cost_u < cost_l
@@ -77,13 +75,13 @@ end
 
 %%%% backtrack tracks to get ids
 tmp   = find( dat1(:, 1) == 1);
-start = dat1(tmp, 2);       %% starting nodes; is even
+start = dat1(tmp, 2);       %% starting nodes; is even 
 
 tmp   = find( ~mod(dat1(:, 1), 2) .* (dat1(:, 2)-dat1(:, 1) == 11) );
 detcs = dat1(tmp, 1);       %% detection nodes; is even
 
 tmp   = find( mod(dat1(:, 1), 2) .* ~mod(dat1(:, 2), 2) .* (dat1(:, 2)-dat1(:, 1) ~= 1) );
-links = dat1(tmp, 1:2);     %% links; is [even  odd]
+links = dat1(tmp, 1:2);     %% links; is [odd even] for cij, [even odd] for det cost
 
 res_inds  = zeros(1, 1e5);
 res_ids   = zeros(1, 1e5);

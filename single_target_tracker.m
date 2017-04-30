@@ -9,16 +9,21 @@ end
 params = readParams('params.txt');
 params.img_path = vid_path;
 params.fout = -1;
-dres.tr1 = [];
-dres.tr2 = [];
 
-for i=1:no_frames
+for i = 1:length(dres.x)
+    dres.tr1(i).bbox = [];
+    dres.tr2(i).bbox = [];
+end
+dres.tr1 = dres.tr1';
+dres.tr2 = dres.tr2';
+
+for i=1:delta:no_frames
     ind = find(dres.fr==i);
-    if(mod(i,delta)~=1)
-        arr = zeros((delta+1)*length(ind),4);
-        dres.tr1 = [dres.tr1; arr];  
-        dres.tr2 = [dres.tr1; arr];
-    else
+%     if(mod(i,delta)~=1)
+%         arr = zeros((delta+1)*length(ind),4);
+% %         dres.tr1 = [];  
+% %         dres.tr2 = [];
+%     else
     im_files = img_files(i:min(i+delta,no_frames));
     im_files_rev = img_files(max(i-delta,1):i)';   %% convert to row vector
     im_files_rev = fliplr(im_files_rev);
@@ -32,12 +37,14 @@ for i=1:no_frames
         params.img_files = im_files;
         [params, bg_area, fg_area, area_resize_factor] = initializeAllAreas(initial_frame, params);
         results = tracking(params, initial_frame, bg_area, fg_area, area_resize_factor);
-        dres.tr1 = [dres.tr1; results.res];
+%         dres.tr1 = [dres.tr1; results.res];
+        dres.tr1(j).bbox = results.res;
         params.img_files = im_files_rev;
         [params, bg_area, fg_area, area_resize_factor] = initializeAllAreas(initial_frame, params);
         results = tracking(params, initial_frame, bg_area, fg_area, area_resize_factor);
-        dres.tr2 = [dres.tr2; results.res];
-    end
+%         dres.tr2 = [dres.tr2; results.res];
+        dres.tr2(j).bbox = results.res;
+%     end
     end
 end
 
