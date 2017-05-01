@@ -8,7 +8,7 @@ dres.c = betta - dres.r; %% cost for each detection window
 dres.c  = dres.c  *1e6;
 c_en    = c_en    *1e6;
 c_ex    = c_ex    *1e6;
-c_ij    = c_ij    *1e6;
+% c_ij    = c_ij    *1e6;
 
 n_nodes = 2*dnum+2; %% number of nodes in the graph
 n_edges = 0;
@@ -22,21 +22,9 @@ for i = 1:dnum     %% for each individual detection
   dat_in(k_dat,:)   = [2*i+1  n_nodes c_ex      ];
 end
 display(k_dat);
-% for i=1:dnum
-%   f2 = dres.nei(i).inds;
-%   for j = 1:length(f2)
-%     k_dat = k_dat+1;
-%     dat_in(k_dat,:) = [2*f2(j)+1 2*i c_ij];
-%   end
-% end
-j=0;
-[index1,index2] = find(c_ij ~=10*1e6);
-for i=1:length(index1)
+for i=1:size(c_ij,1)
     k_dat = k_dat+1;
-    r1 = index1(i);
-    r2 = index2(i);
-    dat_in(k_dat,:) = [2*r1+1  2*r2  c_ij(r1,r2)];
-    
+    dat_in(k_dat,:) = [2*i+1  2*c_ij(i,1)  c_ij(i,2)*1e6];    
 end
 display(k_dat);
 dat_in = [dat_in repmat([0 1],size(dat_in,1),1)];  %% add two columns: 0 for min capacity in column 4 and 1 for max capacity in column 5 for all edges.

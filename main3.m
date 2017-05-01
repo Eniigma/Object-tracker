@@ -18,7 +18,17 @@ catch
   [dres, bboxes] = detect_objects(vid_path);
   save (fname, 'dres', 'bboxes');
 end
-%%%%%%%%%%%  No of frames to track == 100
+
+%%% Adding transition links to the graph by fiding overlapping detections in consequent frames.
+% display('in building the graph...')
+% fname = [cachedir vid_name '_graph_res.mat'];
+% try
+%   load(fname)
+% catch
+%   dres = build_graph(dres);
+%   save (fname, 'dres');
+% end
+
 indices = find(dres.fr == 100);
 u = max(indices);
 dres.x = dres.x(1:u);
@@ -40,16 +50,17 @@ dres.fr = dres.fr(ind);
 
 ftrack = [cachedir vid_name '_traject_main2.mat'];
 % tic
-% dres = single_target_tracker_main2(dres,vid_path);
+% dres = single_target_tracker(dres,vid_path);
 % save (ftrack, 'dres');
 % toc
 load(ftrack);    %% load trajectories
 
-c_ij = link_cost(dres);
-fcost = [cachedir vid_name '_cost_main2.mat'];
-save(fcost,'c_ij');
-% load(fcost);       %% load c_ij
-
+% c_ij = link_cost_main3(dres);
+fcost = [cachedir vid_name '_cost_main3.mat'];
+% save(fcost,'c_ij');
+load(fcost);       %% load c_ij
+fcost1 = [cachedir vid_name '_cost_4.mat']
+cost2 = load(fcost1);
 %%%%%%%%%%%%%%% loading ground truth data
 % load([datadir 'seq03-img-left_ground_truth.mat']);
 % people  = sub(gt,find(gt.w<24));    %% move small objects to "don't care" state in evaluation. This detector cannot detect these, so we will ignore false positives on them.
@@ -90,7 +101,7 @@ for i=1:length(bws)                   %% adds some margin to the label images
 end
 direct = '/home/shubham/mot_benchmark/Object-tracker/';
 input_frames    = [datadir 'seq03-img-left/image_%0.8d_0.png'];
-output_path     = [direct 'output/'];
+output_path     = [direct 'temp/'];
 output_vidname  = [direct '_push_relabel.avi'];
 % display(output_vidname)
 
