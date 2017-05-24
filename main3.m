@@ -59,8 +59,7 @@ load(ftrack);    %% load trajectories
 fcost = [cachedir vid_name '_cost_main3.mat'];
 % save(fcost,'c_ij');
 load(fcost);       %% load c_ij
-fcost1 = [cachedir vid_name '_cost_4.mat']
-cost2 = load(fcost1);
+
 %%%%%%%%%%%%%%% loading ground truth data
 % load([datadir 'seq03-img-left_ground_truth.mat']);
 % people  = sub(gt,find(gt.w<24));    %% move small objects to "don't care" state in evaluation. This detector cannot detect these, so we will ignore false positives on them.
@@ -77,7 +76,7 @@ thr_cost  = 18;     %% max acceptable cost for a track (increase it to have more
 
 tic
 display('in push relabel algorithm ...')
-dres_push_relabel   = tracking_push_relabel(dres, c_en, c_ex, c_ij, betta, max_it);
+dres_push_relabel   = tracking_push_relabel_main2(dres, c_en, c_ex, c_ij, betta, max_it);
 dres_push_relabel.r = -dres_push_relabel.id;
 toc
 %%%%%%%%%%%%%%%

@@ -33,10 +33,17 @@ for i=1:no_frames
         [params, bg_area, fg_area, area_resize_factor] = initializeAllAreas(initial_frame, params);
         results = tracking(params, initial_frame, bg_area, fg_area, area_resize_factor);
         dres.tr1(j).bbox = results.res;
+%         temp = results.res;
+        
         params.img_files = im_files_rev;
         [params, bg_area, fg_area, area_resize_factor] = initializeAllAreas(initial_frame, params);
         results = tracking(params, initial_frame, bg_area, fg_area, area_resize_factor);
         dres.tr2(j).bbox = results.res;
+         
+        %%% assuming constant velocity model
+%         vel = temp(3,1:2)/2-temp(1,1:2)/2;
+%         [dres.tr1(j).bbox,dres.tr2(j).bbox]= fit_motion_model(temp,results.res,vel);
+        
     end
 end
 

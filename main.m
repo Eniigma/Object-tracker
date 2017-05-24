@@ -72,29 +72,29 @@ toc
 %%%%%%%%%%%%%%%
 
 %%% Evaluating
-dres_push_relabel1 = modify(dres_push_relabel);
-
-figure(1),
-display('evaluating...')
-[missr, fppi] = score(dres, gt, people);
-ff=find(fppi>3,1);
-semilogx(fppi(1:ff),1-missr(1:ff), 'k');
-hold on
-% [missr, fppi] = score(dres_dp, gt, people);
-% semilogx(fppi,1-missr, 'r', 'LineWidth', 2);
-% [missr, fppi] = score(dres_dp_nms, gt, people);
-% semilogx(fppi,1-missr, 'g');
-
-[missr, fppi] = score(dres_push_relabel1, gt, people);
-semilogx(fppi,1-missr, 'b');
-
-xlabel('False Positive Per Frame')
-ylabel('Detection Rate')
-legend('Push relabel', 'HOG','location', 'NorthWest')
-set(gcf, 'paperpositionmode','auto')
-axis([0.001 5 0 1])
-grid
-hold off
+% dres_push_relabel1 = modify(dres_push_relabel);
+% 
+% figure(1),
+% display('evaluating...')
+% [missr, fppi] = score(dres, gt, people);
+% ff=find(fppi>3,1);
+% semilogx(fppi(1:ff),1-missr(1:ff), 'k');
+% hold on
+% % [missr, fppi] = score(dres_dp, gt, people);
+% % semilogx(fppi,1-missr, 'r', 'LineWidth', 2);
+% % [missr, fppi] = score(dres_dp_nms, gt, people);
+% % semilogx(fppi,1-missr, 'g');
+% 
+% [missr, fppi] = score(dres_push_relabel1, gt, people);
+% semilogx(fppi,1-missr, 'b');
+% 
+% xlabel('False Positive Per Frame')
+% ylabel('Detection Rate')
+% legend('Push relabel', 'HOG','location', 'NorthWest')
+% set(gcf, 'paperpositionmode','auto')
+% axis([0.001 5 0 1])
+% grid
+% hold off
 
 display('writing the results into a video file ...')
 % close all

@@ -2,20 +2,22 @@ clc;
 clear;
 addpath(genpath('/home/shubham/mot_benchmark/staple'));    %% path for STAPLE tracker
 addpath(genpath('/home/shubham/mot_benchmark/toolbox/'));   %% Poitr toolbox
+addpath(genpath('/home/shubham/mot_benchmark/code/'));
 
 %%% Load Detector
-loadModel = 1;  %1->Caltech  2->INRIA
+loadModel = 3;  %1->Caltech  2->INRIA
 detector = detector_Class(loadModel);
 count = 1;
 
 %%%%%%%%%%% Read Images and Get detections %%%%%%%%%%%%%%%%
-img_path = '/home/shubham/mot_benchmark/Sequences/MOT15/train/PETS09-S2L1/img1/';
-srcFiles = dir(strcat(img_path,'*.jpg'));
+% img_path = '/home/shubham/mot_benchmark/Sequences/MOT15/train/PETS09-S2L1/img1/';
+img_path = '/home/shubham/mot_benchmark/meng-work/MATLAB/tracking_cvpr11_release_v1_0/data/seq03-img-left/';
+srcFiles = dir(strcat(img_path,'*.png'));
 % no_frames = length(srcFiles);
 no_frames = 20;
 delta = 4;
 img_files = cell(no_frames, 1);
-for i = 1:no_frames           %% read all frames ->no_frames
+for i = 1:10           %% read all frames ->no_frames
    img_files{i} = srcFiles(i).name;
 end
 

@@ -14,13 +14,14 @@ classdef detector_Class < handle
           load('/home/shubham/mot_benchmark/toolbox/detector/models/AcfCaltech+Detector.mat');
         case 2
           load('/home/shubham/mot_benchmark/toolbox/detector/models/AcfInriaDetector.mat');
+        case 3
+          load('/home/shubham/mot_benchmark/code/dpm/INRIA/inriaperson_final');
+          detector = model;
       end
       pModify.cascThr = -10;
-      nmsParam.type='none';
-      pModify.pNms = nmsParam;
-      detector = acfModify(detector, pModify);
-      obj.detector = detector;
-      obj.detectorID = loadModel;
+            detector = acfModify(detector, pModify);
+            obj.detector = detector;
+            obj.detectorID = loadModel;
     end
     
     % Get detections. Returns [x,y,w, h]

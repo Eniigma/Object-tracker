@@ -2,7 +2,8 @@ function [c_ij] = trajOverlap(frame1,frame2,traj1,traj2)
 c_ij = 10;
 %%% feature 2 -> time difference
 time_diff = frame2-frame1; 
-k = 5;
+% k = 5;
+k = 4;
 
 if(time_diff <= k)
     iou = zeros(1,time_diff);

@@ -9,8 +9,20 @@ mkdir(cachedir);
 vid_name = 'seq03-img-left';
 vid_path = [datadir vid_name '/'];
 
-%%% Run object/human detector on all frames.
-display('in object/human detection... (may take an hour using 8 CPU cores: please set the number of available CPU cores in the code)')
+%%%%%%%%%%%%%%% setting parameters for tracking
+c_en      = 10;     %% birth cost
+c_ex      = 10;     %% death cost
+% c_ij      = 0;      %% transition cost
+betta     = 0.2;    %% betta
+max_it    = inf;    %% max number of iterations (max number of tracks)
+thr_cost  = 18;     %% max acceptable cost for a track (increase it to have more tracks.)
+delta     = 15;
+ratio = 4/5;
+%%%%%%%%%%%%%%%
+
+
+%%%%%%%%%%% Run object/human detector on all frames.
+display('in object/human detection...')
 fname = [cachedir vid_name '_detec_res.mat'];
 try
   load(fname)
@@ -18,6 +30,7 @@ catch
   [dres, bboxes] = detect_objects(vid_path);
   save (fname, 'dres', 'bboxes');
 end
+
 %%%%%%%%%%%  No of frames to track == 100
 indices = find(dres.fr == 100);
 u = max(indices);
@@ -36,37 +49,25 @@ dres.w = dres.w(ind);
 dres.h = dres.h(ind);
 dres.r = dres.r(ind);
 dres.fr = dres.fr(ind);
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-ftrack = [cachedir vid_name '_traject_main2.mat'];
-% tic
-% dres = single_target_tracker_main2(dres,vid_path);
+%%%%%%%%%%%%%%% Find trajecories
+ftrack = [cachedir vid_name '_traject_main2_vel.mat'];
+% dres = single_target_tracker_main2_vel(dres,vid_path);
 % save (ftrack, 'dres');
-% toc
 load(ftrack);    %% load trajectories
 
-% c_ij = link_cost_main2(dres);
-fcost = [cachedir vid_name '_cost_main2.mat'];
-% save(fcost,'c_ij');
-load(fcost);       %% load c_ij
+[dres] = velocity_model(dres,ratio);
 
-%%%%%%%%%%%%%%% loading ground truth data
-% load([datadir 'seq03-img-left_ground_truth.mat']);
-% people  = sub(gt,find(gt.w<24));    %% move small objects to "don't care" state in evaluation. This detector cannot detect these, so we will ignore false positives on them.
-% gt      = sub(gt,find(gt.w>=24));
-
-%%%%%%%%%%%%%%% setting parameters for tracking
-c_en      = 10;     %% birth cost
-c_ex      = 10;     %% death cost
-% c_ij      = 0;      %% transition cost
-betta     = 0.2;    %% betta
-max_it    = inf;    %% max number of iterations (max number of tracks)
-thr_cost  = 18;     %% max acceptable cost for a track (increase it to have more tracks.)
-%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%% Find detections links
+cij = link_cost_main2(dres,delta);
+% fcost = [cachedir vid_name '_cost_main2.mat'];
+fcost = [cachedir vid_name '_cost_main2_vel.mat'];
+save(fcost,'cij');
+% load(fcost);       %% load c_ij
 
 tic
 display('in push relabel algorithm ...')
-dres_push_relabel   = tracking_push_relabel_main2(dres, c_en, c_ex, c_ij, betta, max_it);
+dres_push_relabel   = tracking_push_relabel_main2(dres, c_en, c_ex, cij, betta, max_it);
 dres_push_relabel.r = -dres_push_relabel.id;
 toc
 %%%%%%%%%%%%%%%
