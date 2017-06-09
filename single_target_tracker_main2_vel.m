@@ -1,6 +1,6 @@
 function [dres] = single_target_tracker_main2_vel(dres,vid_path,delta)
 no_frames = max(dres.fr);
-dirlist = dir(strcat(vid_path,'*.png'));
+dirlist = dir(strcat(vid_path,'*.jpg'));
 img_files = cell(no_frames, 1);
 for i = 1:no_frames           %% read all frames ->no_frames
    img_files{i} = dirlist(i).name;
@@ -23,7 +23,7 @@ for i=1:no_frames
     im_files_rev = fliplr(im_files_rev);
     initial_frame = imread(strcat(vid_path,dirlist(i).name));
     display(i);
-%     if(i<no_frames-1)
+
     for k=1:length(ind)
         j = ind(k);
         params.bb_VOT = [dres.x(j) dres.y(j) dres.w(j) dres.h(j)];
@@ -33,34 +33,13 @@ for i=1:no_frames
         [params, bg_area, fg_area, area_resize_factor] = initializeAllAreas(initial_frame, params);
         results = tracking(params, initial_frame, bg_area, fg_area, area_resize_factor);
         dres.tr1(j).bbox = results.res;
-%         temp = results.res;
         
         params.img_files = im_files_rev;
         [params, bg_area, fg_area, area_resize_factor] = initializeAllAreas(initial_frame, params);
         results = tracking(params, initial_frame, bg_area, fg_area, area_resize_factor);
         dres.tr2(j).bbox = results.res;
-         
-        %%% assuming constant velocity model
-%         vel = temp(3,1:2)/2-temp(1,1:2)/2;
-%         [dres.tr1(j).bbox,dres.tr2(j).bbox]= fit_motion_model(temp,results.res,vel);
-        
+                 
     end
-% %     else
-%        for k=1:length(ind)
-%         j = ind(k);
-%         params.bb_VOT = [dres.x(j) dres.y(j) dres.w(j) dres.h(j)];
-%         params.init_pos = [dres.y(j)+dres.h(j)/2 dres.x(j)+dres.w(j)/2];
-%         params.target_sz = round([dres.h(j) dres.w(j)]);
-%         params.img_files = im_files;
-%         [params, bg_area, fg_area, area_resize_factor] = initializeAllAreas(initial_frame, params);
-%         results = tracking(params, initial_frame, bg_area, fg_area, area_resize_factor);
-%         dres.tr1(j).bbox = results.res;        
-%         params.img_files = im_files_rev;
-%         [params, bg_area, fg_area, area_resize_factor] = initializeAllAreas(initial_frame, params);
-%         results = tracking(params, initial_frame, bg_area, fg_area, area_resize_factor);
-%         dres.tr2(j).bbox = results.res; 
-%        end
-
 end
 
 end

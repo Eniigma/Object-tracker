@@ -99,11 +99,10 @@ toc
 display('writing the results into a video file ...')
 % close all
 % for i = 1:max(dres_dp.track_id)
-% for i = 1:1000
-%   bws(i).bw =  text_to_image(num2str(i), 20, 123);
-% end
-% mkdir('output');
-% save label_image_file bws
+for i = 1:4000
+  bws(i).bw =  text_to_image(num2str(i), 20, 123);
+end
+save cache/label_image bws
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 load('label_image_file');

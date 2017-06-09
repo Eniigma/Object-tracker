@@ -3,68 +3,6 @@ clear
 addpath(genpath('/home/shubham/mot_benchmark/staple'));    %% path for STAPLE tracker
 addpath(genpath('/home/shubham/mot_benchmark/meng-work/MATLAB/tracking_cvpr11_release_v1_0'));
 
-datadir  = '/home/shubham/mot_benchmark/meng-work/MATLAB/tracking_cvpr11_release_v1_0/data/';
-cachedir = '/home/shubham/mot_benchmark/meng-work/MATLAB/tracking_cvpr11_release_v1_0/cache/';
-mkdir(cachedir);
-vid_name = 'seq03-img-left';
-vid_path = [datadir vid_name '/'];
-
-%%% Run object/human detector on all frames.
-display('in object/human detection... (may take an hour using 8 CPU cores: please set the number of available CPU cores in the code)')
-fname = [cachedir vid_name '_detec_res.mat'];
-try
-  load(fname)
-catch
-  [dres, bboxes] = detect_objects(vid_path);
-  save (fname, 'dres', 'bboxes');
-end
-
-%%% Adding transition links to the graph by fiding overlapping detections in consequent frames.
-% display('in building the graph...')
-% fname = [cachedir vid_name '_graph_res.mat'];
-% try
-%   load(fname)
-% catch
-%   dres = build_graph(dres);
-%   save (fname, 'dres');
-% end
-
-indices = find(dres.fr == 100);
-u = max(indices);
-dres.x = dres.x(1:u);
-dres.y = dres.y(1:u);
-dres.w = dres.w(1:u);
-dres.h = dres.h(1:u);
-dres.r = dres.r(1:u);
-dres.fr = dres.fr(1:u);
-
-%%% remove detections with negative confidence score
-ind = find(dres.r > 0);
-dres.x = dres.x(ind);
-dres.y = dres.y(ind);
-dres.w = dres.w(ind);
-dres.h = dres.h(ind);
-dres.r = dres.r(ind);
-dres.fr = dres.fr(ind);
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-ftrack = [cachedir vid_name '_traject_main2.mat'];
-% tic
-% dres = single_target_tracker(dres,vid_path);
-% save (ftrack, 'dres');
-% toc
-load(ftrack);    %% load trajectories
-
-% c_ij = link_cost_main3(dres);
-fcost = [cachedir vid_name '_cost_main3.mat'];
-% save(fcost,'c_ij');
-load(fcost);       %% load c_ij
-
-%%%%%%%%%%%%%%% loading ground truth data
-% load([datadir 'seq03-img-left_ground_truth.mat']);
-% people  = sub(gt,find(gt.w<24));    %% move small objects to "don't care" state in evaluation. This detector cannot detect these, so we will ignore false positives on them.
-% gt      = sub(gt,find(gt.w>=24));
-
 %%%%%%%%%%%%%%% setting parameters for tracking
 c_en      = 10;     %% birth cost
 c_ex      = 10;     %% death cost
@@ -72,39 +10,88 @@ c_ex      = 10;     %% death cost
 betta     = 0.2;    %% betta
 max_it    = inf;    %% max number of iterations (max number of tracks)
 thr_cost  = 18;     %% max acceptable cost for a track (increase it to have more tracks.)
+ratio     = 4/5;
 %%%%%%%%%%%%%%%
 
-tic
-display('in push relabel algorithm ...')
-dres_push_relabel   = tracking_push_relabel_main2(dres, c_en, c_ex, c_ij, betta, max_it);
-dres_push_relabel.r = -dres_push_relabel.id;
-toc
-%%%%%%%%%%%%%%%
+datadir  = '/home/shubham/mot_benchmark/Sequences/Pune-data/';
+vid_name = 'court/img/';
+vid_path = [datadir vid_name];
+filepath ='/home/shubham/mot_benchmark/Sequences/Pune-data/court/'; %% Venice-2
+dres = get_detections(filepath);
+delta = 15;
+%%%%%%%%%%%%%%%%%%%%
+ind = find(dres.r > 0);
+dres.x = dres.x(ind);
+dres.y = dres.y(ind);
+dres.w = dres.w(ind);
+dres.h = dres.h(ind);
+dres.r = dres.r(ind);
+dres.fr = dres.fr(ind);
 
-display('writing the results into a video file ...')
-%% uncomment this block if you want to re-build the label images. You don't need to do that unless there is more than 1000 tracks.
-% close all
-% for i = 1:max(dres_dp.track_id)
-% for i = 1:1000
-%   bws(i).bw =  text_to_image(num2str(i), 20, 123);
-% end
-% mkdir('output');
-% save label_image_file bws
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%% Find trajecories
+ftrack = 'cache/traj_court_486_15.mat';
+dres = single_target_tracker_main2_vel(dres,vid_path,delta);
+% save (ftrack, 'dres');
 
-load('label_image_file');
-m=2;
-for i=1:length(bws)                   %% adds some margin to the label images
-  [sz1 sz2] = size(bws(i).bw);
-  bws(i).bw = [zeros(sz1+2*m,m) [zeros(m,sz2); bws(i).bw; zeros(m,sz2)] zeros(sz1+2*m,m)];
-end
-direct = '/home/shubham/mot_benchmark/Object-tracker/';
-input_frames    = [datadir 'seq03-img-left/image_%0.8d_0.png'];
-output_path     = [direct 'temp/'];
-output_vidname  = [direct '_push_relabel.avi'];
-% display(output_vidname)
+load('cache/label_image');
+input_frames    = [datadir vid_name '%0.8d.jpg'];
+output_path     = 'temp6/';
+mkdir(output_path);
+fnum = length(dres.x);
+bboxes_tracked = dres2bboxes(dres, fnum); 
+show_bboxes_on_video(input_frames, bboxes_tracked, bws, -inf, output_path);
 
-fnum = max(dres.fr);
-bboxes_tracked = dres_to_bboxes(dres_push_relabel, fnum);
-% bboxes_tracked = dres2bboxes(dres_push_relabel, fnum); 
-show_bboxes_on_video(input_frames, bboxes_tracked, output_vidname, bws, 4, -inf, output_path);
+
+% 
+% %%%%%%%%%%%%%%%%%%%% SEQUENCE 1
+% datadir = '/home/shubham/mot_benchmark/Sequences/MOT16/test/';
+% vid_name = 'MOT16-01/img1/';
+% vid_path = [datadir vid_name];
+% filepath = '/home/shubham/mot_benchmark/Sequences/MOT16/test/MOT16-01/det/'; %% People crossing
+% dres = get_detections(filepath);
+% 
+% delta =15;
+% %%%%%%%%%%%%%%% Find trajecories
+% ftrack = 'traj_MOT16-01_450_15.mat';
+% dres1 = single_target_tracker_main2_vel(dres,vid_path,delta);
+% save (ftrack, 'dres1');
+% 
+% delta = 4;
+% %%%%%%%%%%%%%%% Find trajecories
+% ftrack = 'traj_MOT16-01_450_4.mat';
+% dres2 = single_target_tracker_main2_vel(dres,vid_path,delta);
+% save (ftrack, 'dres2');
+% 
+% 
+% %%%%%%%%%%%%%%%%%%%% SEQUENCE 2
+% datadir = '/home/shubham/mot_benchmark/Sequences/MOT16/train/';
+% vid_name = 'MOT16-04/img1/';
+% vid_path = [datadir vid_name];
+% filepath = '/home/shubham/mot_benchmark/Sequences/MOT16/train/MOT16-04/det/'; %% Town square
+% dres = get_detections(filepath);
+% 
+% %%%%%%%%%%  No of frames to track
+% indices = find(dres.fr == 500);
+% u = max(indices);
+% dres.x = dres.x(1:u);
+% dres.y = dres.y(1:u);
+% dres.w = dres.w(1:u);
+% dres.h = dres.h(1:u);
+% dres.r = dres.r(1:u);
+% dres.fr = dres.fr(1:u);
+% 
+% delta =15;
+% %%%%%%%%%%%%%%% Find trajecories
+% ftrack = 'traj_MOT16-04_500_15.mat';
+% dres3 = single_target_tracker_main2_vel(dres,vid_path,delta);
+% save (ftrack, 'dres3');
+% 
+% delta = 4;
+% %%%%%%%%%%%%%%% Find trajecories
+% ftrack = 'traj_MOT16-04_500_4.mat';
+% dres4 = single_target_tracker_main2_vel(dres,vid_path,delta);
+% save (ftrack, 'dres4');
+% 
+[dres] = velocity_model(dres,ratio);
+
+

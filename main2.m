@@ -3,99 +3,109 @@ clear
 addpath(genpath('/home/shubham/mot_benchmark/staple'));    %% path for STAPLE tracker
 addpath(genpath('/home/shubham/mot_benchmark/meng-work/MATLAB/tracking_cvpr11_release_v1_0'));
 
-datadir  = '/home/shubham/mot_benchmark/meng-work/MATLAB/tracking_cvpr11_release_v1_0/data/';
-cachedir = '/home/shubham/mot_benchmark/meng-work/MATLAB/tracking_cvpr11_release_v1_0/cache/';
-mkdir(cachedir);
-vid_name = 'seq03-img-left';
-vid_path = [datadir vid_name '/'];
+%%%%%%%%%%%%%%% parameters for tracking
+c_en      = 10;    
+c_ex      = 10;     
+ratio     = 4/5;
 
-%%%%%%%%%%%%%%% setting parameters for tracking
-c_en      = 10;     %% birth cost
-c_ex      = 10;     %% death cost
-% c_ij      = 0;      %% transition cost
-betta     = 0.2;    %% betta
-max_it    = inf;    %% max number of iterations (max number of tracks)
-thr_cost  = 18;     %% max acceptable cost for a track (increase it to have more tracks.)
-delta     = 15;
-ratio = 4/5;
-%%%%%%%%%%%%%%%
+no_frames = 500;
+betta           = -0.5;%-2;%-0.2; %-0.05;    %0.2;     %% tuning parameter for detection cost
+delta           = 15;
+overlap_thresh  = 0.2;%0.8%0.4;
+w_overlap       = 2;
+w_dist          = 0.3;%0.3;
+w_time_diff     = 0.33;%0.5;
+%%%%%%%%%%%%%%
 
+datadir = '/home/shubham/mot_benchmark/Sequences/MOT15/train/';     %% venice-2, TUD Stad, ETH Bah
+% datadir = '/home/shubham/mot_benchmark/Sequences/MOT15/test/';     %% TUD Crossing
+% datadir = '/home/shubham/mot_benchmark/Sequences/MOT16/train/';  %% mot16-04
+% datadir = '/home/shubham/mot_benchmark/Sequences/Pune-data/';  %% Court
 
-%%%%%%%%%%% Run object/human detector on all frames.
-display('in object/human detection...')
-fname = [cachedir vid_name '_detec_res.mat'];
-try
-  load(fname)
-catch
-  [dres, bboxes] = detect_objects(vid_path);
-  save (fname, 'dres', 'bboxes');
-end
+% vid_name = 'seq03-img-left/';
+vid_name = 'ETH-Bahnhof/img1/';   %betta = -0.5, thr = 0.2
+% vid_name = 'Venice-2/img1/';      %betta = -0.5,thr = 0.2
+% vid_name = 'MOT16-04/img1/';
+% vid_name = 'MOT16-01/img1/';
+% vid_name = 'TUD-Stadtmitte/img1/';  % betta = -1,thr = 0.7
+% vid_name = 'TUD-Crossing/img1/';     % betta = -2. thr = 0.2
+% vid_name = 'court/img/';
 
-%%%%%%%%%%%  No of frames to track == 100
-indices = find(dres.fr == 100);
-u = max(indices);
-dres.x = dres.x(1:u);
-dres.y = dres.y(1:u);
-dres.w = dres.w(1:u);
-dres.h = dres.h(1:u);
-dres.r = dres.r(1:u);
-dres.fr = dres.fr(1:u);
-
-%%% remove detections with negative confidence score
-ind = find(dres.r > 0);
-dres.x = dres.x(ind);
-dres.y = dres.y(ind);
-dres.w = dres.w(ind);
-dres.h = dres.h(ind);
-dres.r = dres.r(ind);
-dres.fr = dres.fr(ind);
+vid_path = [datadir vid_name];          %% Sequence location
 
 %%%%%%%%%%%%%%% Find trajecories
-ftrack = [cachedir vid_name '_traject_main2_vel.mat'];
-% dres = single_target_tracker_main2_vel(dres,vid_path);
-% save (ftrack, 'dres');
-load(ftrack);    %% load trajectories
+% ftrack = 'cache/traj_MOT16-04_500_15.mat';
+ftrack = 'cache/traj_ETH-Bahnhof_500_15.mat';
+% ftrack = 'cache/traj_Venice-2_500_4.mat';
+% ftrack = 'cache/traj_MOT16-01_450_15.mat';
+% ftrack = 'cache/traj_TUD-Stadtmitte_179_15.mat';
+% ftrack = 'cache/traj_TUD-Crossing_200_15.mat';
+% ftrack = 'cache/traj_court_486_15.mat';
+load(ftrack);    
 
-[dres] = velocity_model(dres,ratio);
+%%% for detections from ACF detector
+% l = length(dres.r);
+% dres.r = 2*ones(l,1);
+dres.r = dres.r/100;     %%TUD
+dres = no_of_frames(dres,no_frames);
+dres = velocity_model(dres,ratio);
 
-%%%%%%%%%%%%%%% Find detections links
-cij = link_cost_main2(dres,delta);
-% fcost = [cachedir vid_name '_cost_main2.mat'];
-fcost = [cachedir vid_name '_cost_main2_vel.mat'];
-save(fcost,'cij');
-% load(fcost);       %% load c_ij
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+videoPlayer = vision.VideoPlayer;
+no_frames = max(dres.fr);
+dirlist = dir(strcat(vid_path,'*.jpg'));
+img_files = cell(no_frames, 1);
+for i = 1:no_frames           %% read all frames ->no_frames
+   img_files{i} = dirlist(i).name;
+end
+% xx = find(dres.fr>1 & dres.fr<5);
+xx = find(dres.fr==100);
+for i = 1:length(xx)
+    j = xx(i);
+    frame = dres.fr(j);
+    rectangle = dres.tr1(j).bbox;
+    im = imread([vid_path img_files{frame}]);
+    for k=1:delta+1
+        rect = rectangle(k,:);
+        im = imread([vid_path img_files{frame+k-1}]);
+%         figure(1)
+%         imshow(im)
+%         hold on
+        im = insertShape(im, 'Rectangle', rect, 'LineWidth', 2, 'Color', 'black');
+%         drawnow
+        step(videoPlayer,im);
+    end
+end
+ 
+%%%%%%%%%%%%%% Find detections links
+cij = link_cost_main2(dres,delta,overlap_thresh,w_overlap,w_dist,w_time_diff);
+% fcost = 'cache/cost_MOT16-04_500_15.mat';
+% fcost = 'cache/cost_venice-2_500_4.mat';
+% save(fcost,'cij');
+% load(fcost);      
 
-tic
+%%%%%%%%%%%%%%% Push relabel algorithm
 display('in push relabel algorithm ...')
-dres_push_relabel   = tracking_push_relabel_main2(dres, c_en, c_ex, cij, betta, max_it);
-dres_push_relabel.r = -dres_push_relabel.id;
-toc
-%%%%%%%%%%%%%%%
+dres_push_relabel   = tracking_push_relabel_main2(dres, c_en, c_ex, cij, betta);
+% dres_push_relabel = smooth_tracks(dres_push_relabel);
 
+%%%%%%%%%%%%%%% Display results
 display('writing the results into a video file ...')
-%% uncomment this block if you want to re-build the label images. You don't need to do that unless there is more than 1000 tracks.
-% close all
-% for i = 1:max(dres_dp.track_id)
-% for i = 1:1000
-%   bws(i).bw =  text_to_image(num2str(i), 20, 123);
-% end
-% mkdir('output');
-% save label_image_file bws
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-load('label_image_file');
+load('cache/label_image');
 m=2;
 for i=1:length(bws)                   %% adds some margin to the label images
-  [sz1 sz2] = size(bws(i).bw);
+  [sz1 ,sz2] = size(bws(i).bw);
   bws(i).bw = [zeros(sz1+2*m,m) [zeros(m,sz2); bws(i).bw; zeros(m,sz2)] zeros(sz1+2*m,m)];
 end
-direct = '/home/shubham/mot_benchmark/Object-tracker/';
-input_frames    = [datadir 'seq03-img-left/image_%0.8d_0.png'];
-output_path     = [direct 'temp/'];
-output_vidname  = [direct '_push_relabel.avi'];
-% display(output_vidname)
-
+% input_frames    = [datadir 'seq03-img-left/image_%0.8d_0.png'];
+input_frames    = [datadir vid_name '%0.6d.jpg'];
+output_path     = 'temp5/';
+mkdir(output_path);
 fnum = max(dres.fr);
-% bboxes_tracked = dres_to_bboxes(dres_push_relabel, fnum);
 bboxes_tracked = dres2bboxes(dres_push_relabel, fnum); 
-show_bboxes_on_video(input_frames, bboxes_tracked, output_vidname, bws, 4, -inf, output_path);
+show_bboxes_on_video(input_frames, bboxes_tracked, bws, -inf, output_path);
+
+vidname = 'MOT16.avi';
+convert2Video(output_path,vidname);
+%%%%%%%%%%%%%%% Write results to csv file
+% write_results(dres_push_relabel,'Venice-2.dat');
